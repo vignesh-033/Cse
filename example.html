@@ -1,0 +1,252 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VSB CSE Portal</title><style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #f4f6f9;
+}
+
+.container {
+  display: flex;
+  height: 100vh;
+}
+
+.left {
+  width: 50%;
+  background: #003366;
+  color: white;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.right {
+  width: 50%;
+  background: url('https://images.unsplash.com/photo-1523240795612-9a054b0db644') center/cover;
+}
+
+input, textarea, select {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 5px;
+  border: none;
+}
+
+button {
+  padding: 10px;
+  border: none;
+  background: #FFD700;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.hidden { display: none; }
+
+/* DASHBOARD */
+.dashboard {
+  padding: 20px;
+}
+
+.header {
+  background: #003366;
+  color: white;
+  padding: 15px;
+  text-align: center;
+}
+
+/* HIGHLIGHTS */
+.highlights {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+  gap: 15px;
+}
+
+.highlight-card {
+  background: #FFD700;
+  padding: 15px;
+  border-radius: 10px;
+  color: black;
+  font-weight: bold;
+}
+
+/* CARDS */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0px 3px 10px rgba(0,0,0,0.1);
+  transition: 0.3s;
+}
+.card:hover { transform: scale(1.03); }
+
+.card img {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+}
+
+h1 { color: #FFD700; }
+</style></head><body><!-- LOGIN --><div class="container" id="loginPage">
+  <div class="left">
+    <h1>VSB CSE Portal</h1><p>Select Role:</p>
+<button onclick="selectRole('Student')">Student</button>
+<button onclick="selectRole('Faculty')">Faculty</button>
+<button onclick="guest()">Other</button>
+
+<input id="email" placeholder="Email">
+<input id="password" placeholder="Password">
+
+<button onclick="login()">Login / Signup</button>
+
+  </div>
+  <div class="right"></div>
+</div><!-- PROFILE --><div id="profilePage" class="hidden">
+  <h2 style="padding:20px;">Complete Profile</h2>  <div style="padding:20px;">
+    <input id="name" placeholder="Full Name">
+    <input id="photo" placeholder="Photo URL">
+    <input id="reg" placeholder="Register No / Staff ID">
+    <input id="phone" placeholder="Phone (Private)">
+    <textarea id="bio" placeholder="Bio"></textarea>
+    <input id="skills" placeholder="Skills (comma separated)">
+    <input id="github" placeholder="GitHub Username">
+    <input id="leetcode" placeholder="LeetCode Username">
+    <input id="nptel" placeholder="NPTEL Details"><button onclick="saveProfile()">Save</button>
+
+  </div>
+</div><!-- DASHBOARD --><div id="dashboard" class="hidden">
+  <div class="header">
+    <h2>Department of Computer Science and Engineering</h2>
+  </div>  <!-- HIGHLIGHTS -->  <div class="highlights">
+    <div class="highlight-card">🎓 NAAC Accredited Institution</div>
+    <div class="highlight-card">💻 Strong Placement Support</div>
+    <div class="highlight-card">🚀 Active Coding Culture</div>
+    <div class="highlight-card">🤖 AI & Emerging Tech Focus</div>
+    <div class="highlight-card">📊 Industry-Oriented Curriculum</div>
+    <div class="highlight-card">🏆 Hackathon & Project Excellence</div>
+  </div>  <!-- SEARCH -->  <div style="margin-top:20px;">
+    <input id="search" placeholder="Search skill..." onkeyup="renderUsers()">
+    <select id="filterRole" onchange="renderUsers()">
+      <option value="">All</option>
+      <option>Student</option>
+      <option>Faculty</option>
+    </select>
+  </div>  <!-- CARDS -->  <div class="cards" id="cards"></div>
+</div><script>
+
+let role = "";
+let users = JSON.parse(localStorage.getItem("users")) || [];
+
+// ROLE
+function selectRole(r){
+  role = r;
+  alert("Selected: " + r);
+}
+
+// GUEST
+function guest(){
+  showDashboard();
+}
+
+// LOGIN
+function login(){
+  if(!role){
+    alert("Select role first");
+    return;
+  }
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("profilePage").classList.remove("hidden");
+}
+
+// SAVE
+function saveProfile(){
+  let user = {
+    name: name.value,
+    photo: photo.value,
+    reg: reg.value,
+    phone: phone.value,
+    bio: bio.value,
+    skills: skills.value,
+    github: github.value,
+    leetcode: leetcode.value,
+    nptel: nptel.value,
+    role: role
+  };
+
+  users.push(user);
+  localStorage.setItem("users", JSON.stringify(users));
+
+  showDashboard();
+}
+
+// SHOW DASHBOARD
+function showDashboard(){
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("profilePage").classList.add("hidden");
+  document.getElementById("dashboard").classList.remove("hidden");
+
+  renderUsers();
+}
+
+// RENDER USERS
+async function renderUsers(){
+  let container = document.getElementById("cards");
+  container.innerHTML = "";
+
+  let search = document.getElementById("search").value.toLowerCase();
+  let filter = document.getElementById("filterRole").value;
+
+  for(let u of users){
+
+    if(search && !u.skills.toLowerCase().includes(search)) continue;
+    if(filter && u.role !== filter) continue;
+
+    let githubData = await fetchGitHub(u.github);
+
+    container.innerHTML += `
+      <div class="card">
+        <img src="${u.photo || 'https://via.placeholder.com/70'}">
+        <h3>${u.name}</h3>
+        <p>${u.role}</p>
+        <p>${u.bio}</p>
+        <p><b>Skills:</b> ${u.skills}</p>
+        <p><b>GitHub Repos:</b> ${githubData.repos}</p>
+        <p><b>Followers:</b> ${githubData.followers}</p>
+        <p><b>LeetCode:</b> ${u.leetcode}</p>
+        <p><b>NPTEL:</b> ${u.nptel}</p>
+      </div>
+    `;
+  }
+}
+
+// GITHUB API
+async function fetchGitHub(username){
+  if(!username) return {repos:0, followers:0};
+
+  try{
+    let res = await fetch(`https://api.github.com/users/${username}`);
+    let data = await res.json();
+
+    return {
+      repos: data.public_repos || 0,
+      followers: data.followers || 0
+    };
+  }catch{
+    return {repos:0, followers:0};
+  }
+}
+
+</script></body>
+</html>
